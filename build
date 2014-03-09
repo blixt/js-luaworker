@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+# Apply Emscripten changes
+patch -N -p0 < emlua.patch
+
+# Build the Lua source with Emscripten
+cd lua
+emmake make generic
+cd ..
+
+# Remove Emscripten changes again
+patch -R -p0 < emlua.patch

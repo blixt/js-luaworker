@@ -1,2 +1,7 @@
+/lua/src/emlua_shell.js
+/lua/src/liblua.a
+/lua/src/lua
+/lua/src/luac
 /node_modules
 /npm-debug.log
+*.o
