@@ -3,6 +3,11 @@
   "version": "0.0.0",
   "description": "Package for running a Lua VM in a Web Worker.",
   "main": "index.js",
+  "browser": {
+    "fs": false,
+    "path": false,
+    "ws": false
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

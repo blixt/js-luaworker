@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+OUT_FILE=lib/emlua.js
+
 # Apply Emscripten changes
 patch -N -p0 < emlua.patch
 
@@ -7,6 +9,18 @@ patch -N -p0 < emlua.patch
 cd lua
 emmake make generic
 cd ..
+
+# Convert the output JS to an NPM module
+mkdir -p `dirname $OUT_FILE`
+echo 'module.exports = (function(){' > $OUT_FILE
+cat lua/src/emlua_shell.js >> $OUT_FILE
+echo -e '\nreturn Module;}());' >> $OUT_FILE
+
+# Remove eval which may not be supported everywhere
+sed -i '' 's/Module = eval(.*/Module = {};/g' $OUT_FILE
+
+# Force Node.js environment flag to be false
+sed -i '' 's/^var ENVIRONMENT_IS_NODE = .*/var ENVIRONMENT_IS_NODE = false;/g' $OUT_FILE
 
 # Remove Emscripten changes again
 patch -R -p0 < emlua.patch
