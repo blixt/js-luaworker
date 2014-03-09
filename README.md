@@ -36,9 +36,9 @@ Here's how you'd create the JavaScript files to run in your browser,
 assuming you are using the code in the *Example* section above:
 
 ```bash
-// Bundle the Worker code into its own file.
+# Bundle the Worker code into its own file.
 browserify node_modules/luaworker/worker.js -o worker.js
-// This file contains the code from the Example section.
+# This file contains the code from the Example section.
 browserify main.js -o app.js
 ```
 
