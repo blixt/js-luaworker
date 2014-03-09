@@ -9,7 +9,7 @@
     "ws": false
   },
   "files": [
-    "lib",
+    "lib/emlua.js",
     "index.js",
     "worker.js"
   ],
