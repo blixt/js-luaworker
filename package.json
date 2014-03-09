@@ -1,0 +1,21 @@
+{
+  "name": "luaworker",
+  "version": "0.0.0",
+  "description": "Package for running a Lua VM in a Web Worker.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/blixt/js-luaworker.git"
+  },
+  "author": "Blixt <me@blixt.org>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/blixt/js-luaworker/issues"
+  },
+  "dependencies": {
+    "workerproxy": "~0.3.3"
+  }
+}
