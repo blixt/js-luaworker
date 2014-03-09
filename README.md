@@ -31,5 +31,6 @@ The work in `emlua.patch` is borrowed from kripken's [lua.vm.js][].
 **Note:** This does not include the Lua → JS bridge, since allowing
 access to JavaScript from Lua might not always be desirable.
 
+[Browserify]: http://browserify.org/
 [Emscripten]: https://github.com/kripken/emscripten
 [lua.vm.js]: https://github.com/kripken/lua.vm.js
