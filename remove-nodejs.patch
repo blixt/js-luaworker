@@ -1,0 +1,413 @@
+--- lib/emlua.js	2014-03-09 20:45:47.000000000 -0400
++++ lib/emlua.js	2014-03-09 20:55:02.000000000 -0400
+@@ -15,7 +15,7 @@
+ // before the code. Then that object will be used in the code, and you
+ // can continue to use Module afterwards as well.
+ var Module;
+-if (!Module) Module = eval('(function() { try { return Module || {} } catch(e) { return {} } })()');
++if (!Module) Module = {};
+ 
+ // Sometimes an existing Module object exists with properties
+ // meant to overwrite the default module functionality. Here
+@@ -31,69 +31,14 @@
+ 
+ // The environment setup code below is customized to use Module.
+ // *** Environment setup code ***
+-var ENVIRONMENT_IS_NODE = typeof process === 'object' && typeof require === 'function';
++var ENVIRONMENT_IS_NODE = false;
+ var ENVIRONMENT_IS_WEB = typeof window === 'object';
+ var ENVIRONMENT_IS_WORKER = typeof importScripts === 'function';
+ var ENVIRONMENT_IS_SHELL = !ENVIRONMENT_IS_WEB && !ENVIRONMENT_IS_NODE && !ENVIRONMENT_IS_WORKER;
+ 
+ if (ENVIRONMENT_IS_NODE) {
+-  // Expose functionality in the same simple way that the shells work
+-  // Note that we pollute the global namespace here, otherwise we break in node
+-  if (!Module['print']) Module['print'] = function print(x) {
+-    process['stdout'].write(x + '\n');
+-  };
+-  if (!Module['printErr']) Module['printErr'] = function printErr(x) {
+-    process['stderr'].write(x + '\n');
+-  };
+-
+-  var nodeFS = require('fs');
+-  var nodePath = require('path');
+-
+-  Module['read'] = function read(filename, binary) {
+-    filename = nodePath['normalize'](filename);
+-    var ret = nodeFS['readFileSync'](filename);
+-    // The path is absolute if the normalized version is the same as the resolved.
+-    if (!ret && filename != nodePath['resolve'](filename)) {
+-      filename = path.join(__dirname, '..', 'src', filename);
+-      ret = nodeFS['readFileSync'](filename);
+-    }
+-    if (ret && !binary) ret = ret.toString();
+-    return ret;
+-  };
+-
+-  Module['readBinary'] = function readBinary(filename) { return Module['read'](filename, true) };
+-
+-  Module['load'] = function load(f) {
+-    globalEval(read(f));
+-  };
+-
+-  Module['arguments'] = process['argv'].slice(2);
+-
+-  module['exports'] = Module;
+ }
+ else if (ENVIRONMENT_IS_SHELL) {
+-  if (!Module['print']) Module['print'] = print;
+-  if (typeof printErr != 'undefined') Module['printErr'] = printErr; // not present in v8 or older sm
+-
+-  if (typeof read != 'undefined') {
+-    Module['read'] = read;
+-  } else {
+-    Module['read'] = function read() { throw 'no read() available (jsc?)' };
+-  }
+-
+-  Module['readBinary'] = function readBinary(f) {
+-    return read(f, 'binary');
+-  };
+-
+-  if (typeof scriptArgs != 'undefined') {
+-    Module['arguments'] = scriptArgs;
+-  } else if (typeof arguments != 'undefined') {
+-    Module['arguments'] = arguments;
+-  }
+-
+-  this['Module'] = Module;
+-
+-  eval("if (typeof gc === 'function' && gc.toString().indexOf('[native code]') > 0) var gc = undefined"); // wipe out the SpiderMonkey shell 'gc' function, which can confuse closure (uses it as a minified name, and it is then initted to a non-falsey value unexpectedly)
+ }
+ else if (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) {
+   Module['read'] = function read(url) {
+@@ -1604,13 +1549,6 @@
+           if (!tty.input.length) {
+             var result = null;
+             if (ENVIRONMENT_IS_NODE) {
+-              result = process['stdin']['read']();
+-              if (!result) {
+-                if (process['stdin']['_readableState'] && process['stdin']['_readableState']['ended']) {
+-                  return null;  // EOF
+-                }
+-                return undefined;  // no data available
+-              }
+             } else if (typeof window != 'undefined' &&
+               typeof window.prompt == 'function') {
+               // Browser.
+@@ -2158,41 +2096,10 @@
+       }};
+   
+   var NODEFS={isWindows:false,staticInit:function () {
+-        NODEFS.isWindows = !!process.platform.match(/^win/);
+       },mount:function (mount) {
+-        assert(ENVIRONMENT_IS_NODE);
+-        return NODEFS.createNode(null, '/', NODEFS.getMode(mount.opts.root), 0);
+       },createNode:function (parent, name, mode, dev) {
+-        if (!FS.isDir(mode) && !FS.isFile(mode) && !FS.isLink(mode)) {
+-          throw new FS.ErrnoError(ERRNO_CODES.EINVAL);
+-        }
+-        var node = FS.createNode(parent, name, mode);
+-        node.node_ops = NODEFS.node_ops;
+-        node.stream_ops = NODEFS.stream_ops;
+-        return node;
+       },getMode:function (path) {
+-        var stat;
+-        try {
+-          stat = fs.lstatSync(path);
+-          if (NODEFS.isWindows) {
+-            // On Windows, directories return permission bits 'rw-rw-rw-', even though they have 'rwxrwxrwx', so 
+-            // propagate write bits to execute bits.
+-            stat.mode = stat.mode | ((stat.mode & 146) >> 1);
+-          }
+-        } catch (e) {
+-          if (!e.code) throw e;
+-          throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+-        }
+-        return stat.mode;
+       },realPath:function (node) {
+-        var parts = [];
+-        while (node.parent !== node) {
+-          parts.push(node.name);
+-          node = node.parent;
+-        }
+-        parts.push(node.mount.opts.root);
+-        parts.reverse();
+-        return PATH.join.apply(null, parts);
+       },flagsToPermissionStringMap:{0:"r",1:"r+",2:"r+",64:"r",65:"r+",66:"r+",129:"rx+",193:"rx+",514:"w+",577:"w",578:"w+",705:"wx",706:"wx+",1024:"a",1025:"a",1026:"a+",1089:"a",1090:"a+",1153:"ax",1154:"ax+",1217:"ax",1218:"ax+",4096:"rs",4098:"rs+"},flagsToPermissionString:function (flags) {
+         if (flags in NODEFS.flagsToPermissionStringMap) {
+           return NODEFS.flagsToPermissionStringMap[flags];
+@@ -2200,189 +2107,20 @@
+           return flags;
+         }
+       },node_ops:{getattr:function (node) {
+-          var path = NODEFS.realPath(node);
+-          var stat;
+-          try {
+-            stat = fs.lstatSync(path);
+-          } catch (e) {
+-            if (!e.code) throw e;
+-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+-          }
+-          // node.js v0.10.20 doesn't report blksize and blocks on Windows. Fake them with default blksize of 4096.
+-          // See http://support.microsoft.com/kb/140365
+-          if (NODEFS.isWindows && !stat.blksize) {
+-            stat.blksize = 4096;
+-          }
+-          if (NODEFS.isWindows && !stat.blocks) {
+-            stat.blocks = (stat.size+stat.blksize-1)/stat.blksize|0;
+-          }
+-          return {
+-            dev: stat.dev,
+-            ino: stat.ino,
+-            mode: stat.mode,
+-            nlink: stat.nlink,
+-            uid: stat.uid,
+-            gid: stat.gid,
+-            rdev: stat.rdev,
+-            size: stat.size,
+-            atime: stat.atime,
+-            mtime: stat.mtime,
+-            ctime: stat.ctime,
+-            blksize: stat.blksize,
+-            blocks: stat.blocks
+-          };
+         },setattr:function (node, attr) {
+-          var path = NODEFS.realPath(node);
+-          try {
+-            if (attr.mode !== undefined) {
+-              fs.chmodSync(path, attr.mode);
+-              // update the common node structure mode as well
+-              node.mode = attr.mode;
+-            }
+-            if (attr.timestamp !== undefined) {
+-              var date = new Date(attr.timestamp);
+-              fs.utimesSync(path, date, date);
+-            }
+-            if (attr.size !== undefined) {
+-              fs.truncateSync(path, attr.size);
+-            }
+-          } catch (e) {
+-            if (!e.code) throw e;
+-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+-          }
+         },lookup:function (parent, name) {
+-          var path = PATH.join2(NODEFS.realPath(parent), name);
+-          var mode = NODEFS.getMode(path);
+-          return NODEFS.createNode(parent, name, mode);
+         },mknod:function (parent, name, mode, dev) {
+-          var node = NODEFS.createNode(parent, name, mode, dev);
+-          // create the backing node for this in the fs root as well
+-          var path = NODEFS.realPath(node);
+-          try {
+-            if (FS.isDir(node.mode)) {
+-              fs.mkdirSync(path, node.mode);
+-            } else {
+-              fs.writeFileSync(path, '', { mode: node.mode });
+-            }
+-          } catch (e) {
+-            if (!e.code) throw e;
+-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+-          }
+-          return node;
+         },rename:function (oldNode, newDir, newName) {
+-          var oldPath = NODEFS.realPath(oldNode);
+-          var newPath = PATH.join2(NODEFS.realPath(newDir), newName);
+-          try {
+-            fs.renameSync(oldPath, newPath);
+-          } catch (e) {
+-            if (!e.code) throw e;
+-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+-          }
+         },unlink:function (parent, name) {
+-          var path = PATH.join2(NODEFS.realPath(parent), name);
+-          try {
+-            fs.unlinkSync(path);
+-          } catch (e) {
+-            if (!e.code) throw e;
+-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+-          }
+         },rmdir:function (parent, name) {
+-          var path = PATH.join2(NODEFS.realPath(parent), name);
+-          try {
+-            fs.rmdirSync(path);
+-          } catch (e) {
+-            if (!e.code) throw e;
+-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+-          }
+         },readdir:function (node) {
+-          var path = NODEFS.realPath(node);
+-          try {
+-            return fs.readdirSync(path);
+-          } catch (e) {
+-            if (!e.code) throw e;
+-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+-          }
+         },symlink:function (parent, newName, oldPath) {
+-          var newPath = PATH.join2(NODEFS.realPath(parent), newName);
+-          try {
+-            fs.symlinkSync(oldPath, newPath);
+-          } catch (e) {
+-            if (!e.code) throw e;
+-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+-          }
+         },readlink:function (node) {
+-          var path = NODEFS.realPath(node);
+-          try {
+-            return fs.readlinkSync(path);
+-          } catch (e) {
+-            if (!e.code) throw e;
+-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+-          }
+         }},stream_ops:{open:function (stream) {
+-          var path = NODEFS.realPath(stream.node);
+-          try {
+-            if (FS.isFile(stream.node.mode)) {
+-              stream.nfd = fs.openSync(path, NODEFS.flagsToPermissionString(stream.flags));
+-            }
+-          } catch (e) {
+-            if (!e.code) throw e;
+-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+-          }
+         },close:function (stream) {
+-          try {
+-            if (FS.isFile(stream.node.mode) && stream.nfd) {
+-              fs.closeSync(stream.nfd);
+-            }
+-          } catch (e) {
+-            if (!e.code) throw e;
+-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+-          }
+         },read:function (stream, buffer, offset, length, position) {
+-          // FIXME this is terrible.
+-          var nbuffer = new Buffer(length);
+-          var res;
+-          try {
+-            res = fs.readSync(stream.nfd, nbuffer, 0, length, position);
+-          } catch (e) {
+-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+-          }
+-          if (res > 0) {
+-            for (var i = 0; i < res; i++) {
+-              buffer[offset + i] = nbuffer[i];
+-            }
+-          }
+-          return res;
+         },write:function (stream, buffer, offset, length, position) {
+-          // FIXME this is terrible.
+-          var nbuffer = new Buffer(buffer.subarray(offset, offset + length));
+-          var res;
+-          try {
+-            res = fs.writeSync(stream.nfd, nbuffer, 0, length, position);
+-          } catch (e) {
+-            throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+-          }
+-          return res;
+         },llseek:function (stream, offset, whence) {
+-          var position = offset;
+-          if (whence === 1) {  // SEEK_CUR.
+-            position += stream.position;
+-          } else if (whence === 2) {  // SEEK_END.
+-            if (FS.isFile(stream.node.mode)) {
+-              try {
+-                var stat = fs.fstatSync(stream.nfd);
+-                position += stat.size;
+-              } catch (e) {
+-                throw new FS.ErrnoError(ERRNO_CODES[e.code]);
+-              }
+-            }
+-          }
+-  
+-          if (position < 0) {
+-            throw new FS.ErrnoError(ERRNO_CODES.EINVAL);
+-          }
+-  
+-          stream.position = position;
+-          return position;
+         }}};
+   
+   var _stdin=allocate(1, "i32*", ALLOC_STATIC);
+@@ -4068,7 +3806,7 @@
+               // the node ws library API is slightly different than the browser's
+               var opts = ENVIRONMENT_IS_NODE ? {headers: {'websocket-protocol': ['binary']}} : ['binary'];
+               // If node we use the ws library.
+-              var WebSocket = ENVIRONMENT_IS_NODE ? require('ws') : window['WebSocket'];
++              var WebSocket = ENVIRONMENT_IS_NODE ? null : window['WebSocket'];
+               ws = new WebSocket(url, opts);
+               ws.binaryType = 'arraybuffer';
+             } catch (e) {
+@@ -4146,16 +3884,6 @@
+           };
+   
+           if (ENVIRONMENT_IS_NODE) {
+-            peer.socket.on('open', handleOpen);
+-            peer.socket.on('message', function(data, flags) {
+-              if (!flags.binary) {
+-                return;
+-              }
+-              handleMessage((new Uint8Array(data)).buffer);  // copy from node Buffer -> ArrayBuffer
+-            });
+-            peer.socket.on('error', function() {
+-              // don't throw
+-            });
+           } else {
+             peer.socket.onopen = handleOpen;
+             peer.socket.onmessage = function peer_socket_onmessage(event) {
+@@ -4281,41 +4009,6 @@
+           if (!ENVIRONMENT_IS_NODE) {
+             throw new FS.ErrnoError(ERRNO_CODES.EOPNOTSUPP);
+           }
+-          if (sock.server) {
+-             throw new FS.ErrnoError(ERRNO_CODES.EINVAL);  // already listening
+-          }
+-          var WebSocketServer = require('ws').Server;
+-          var host = sock.saddr;
+-          sock.server = new WebSocketServer({
+-            host: host,
+-            port: sock.sport
+-            // TODO support backlog
+-          });
+-  
+-          sock.server.on('connection', function(ws) {
+-            if (sock.type === 1) {
+-              var newsock = SOCKFS.createSocket(sock.family, sock.type, sock.protocol);
+-  
+-              // create a peer on the new socket
+-              var peer = SOCKFS.websocket_sock_ops.createPeer(newsock, ws);
+-              newsock.daddr = peer.addr;
+-              newsock.dport = peer.port;
+-  
+-              // push to queue for accept to pick up
+-              sock.pending.push(newsock);
+-            } else {
+-              // create a peer on the listen socket so calling sendto
+-              // with the listen socket and an address will resolve
+-              // to the correct client
+-              SOCKFS.websocket_sock_ops.createPeer(sock, ws);
+-            }
+-          });
+-          sock.server.on('closed', function() {
+-            sock.server = null;
+-          });
+-          sock.server.on('error', function() {
+-            // don't throw
+-          });
+         },accept:function (listensock) {
+           if (!listensock.server) {
+             throw new FS.ErrnoError(ERRNO_CODES.EINVAL);
+@@ -7123,7 +6816,6 @@
+ FS.staticInit();__ATINIT__.unshift({ func: function() { if (!Module["noFSInit"] && !FS.init.initialized) FS.init() } });__ATMAIN__.push({ func: function() { FS.ignorePermissions = false } });__ATEXIT__.push({ func: function() { FS.quit() } });Module["FS_createFolder"] = FS.createFolder;Module["FS_createPath"] = FS.createPath;Module["FS_createDataFile"] = FS.createDataFile;Module["FS_createPreloadedFile"] = FS.createPreloadedFile;Module["FS_createLazyFile"] = FS.createLazyFile;Module["FS_createLink"] = FS.createLink;Module["FS_createDevice"] = FS.createDevice;
+ ___errno_state = Runtime.staticAlloc(4); HEAP32[((___errno_state)>>2)]=0;
+ __ATINIT__.unshift({ func: function() { TTY.init() } });__ATEXIT__.push({ func: function() { TTY.shutdown() } });TTY.utf8 = new Runtime.UTF8Processor();
+-if (ENVIRONMENT_IS_NODE) { var fs = require("fs"); NODEFS.staticInit(); }
+ __ATINIT__.push({ func: function() { SOCKFS.root = FS.mount(SOCKFS, {}, null); } });
+ _fputc.ret = allocate([0], "i8", ALLOC_STATIC);
+ Module["requestFullScreen"] = function Module_requestFullScreen(lockPointer, resizeCanvas) { Browser.requestFullScreen(lockPointer, resizeCanvas) };
+@@ -8864,8 +8556,6 @@
+ 
+ if (memoryInitializer) {
+   if (ENVIRONMENT_IS_NODE || ENVIRONMENT_IS_SHELL) {
+-    var data = Module['readBinary'](memoryInitializer);
+-    HEAPU8.set(data, STATIC_BASE);
+   } else {
+     addRunDependency('memory initializer');
+     Browser.asyncLoad(memoryInitializer, function(data) {

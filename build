@@ -16,11 +16,8 @@ echo 'module.exports = (function(){' > $OUT_FILE
 cat lua/src/emlua_shell.js >> $OUT_FILE
 echo -e '\nreturn Module;}());' >> $OUT_FILE
 
-# Remove eval which may not be supported everywhere
-sed -i '' 's/Module = eval(.*/Module = {};/g' $OUT_FILE
-
-# Force Node.js environment flag to be false
-sed -i '' 's/^var ENVIRONMENT_IS_NODE = .*/var ENVIRONMENT_IS_NODE = false;/g' $OUT_FILE
+# Remove Node.js code from the module
+patch -N -p0 < remove-nodejs.patch
 
 # Remove Emscripten changes again
 patch -R -p0 < emlua.patch
