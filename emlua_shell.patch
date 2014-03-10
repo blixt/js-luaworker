@@ -1,6 +1,11 @@
---- lib/emlua.js	2014-03-09 20:45:47.000000000 -0400
-+++ lib/emlua.js	2014-03-09 20:55:02.000000000 -0400
-@@ -15,7 +15,7 @@
+--- lua/src/emlua_shell.js	2014-03-09 21:11:27.000000000 -0400
++++ lua/src/emlua_shell.js	2014-03-09 21:24:24.000000000 -0400
+@@ -1,3 +1,4 @@
++module.exports = (function(){
+ // The Module object: Our interface to the outside world. We import
+ // and export values on it, and do the work to get that through
+ // closure compiler if necessary. There are various ways Module can be used:
+@@ -14,7 +15,7 @@
  // before the code. Then that object will be used in the code, and you
  // can continue to use Module afterwards as well.
  var Module;
@@ -9,7 +14,7 @@
  
  // Sometimes an existing Module object exists with properties
  // meant to overwrite the default module functionality. Here
-@@ -31,69 +31,14 @@
+@@ -30,69 +31,14 @@
  
  // The environment setup code below is customized to use Module.
  // *** Environment setup code ***
@@ -80,7 +85,7 @@
  }
  else if (ENVIRONMENT_IS_WEB || ENVIRONMENT_IS_WORKER) {
    Module['read'] = function read(url) {
-@@ -1604,13 +1549,6 @@
+@@ -1603,13 +1549,6 @@
            if (!tty.input.length) {
              var result = null;
              if (ENVIRONMENT_IS_NODE) {
@@ -94,7 +99,7 @@
              } else if (typeof window != 'undefined' &&
                typeof window.prompt == 'function') {
                // Browser.
-@@ -2158,41 +2096,10 @@
+@@ -2157,41 +2096,10 @@
        }};
    
    var NODEFS={isWindows:false,staticInit:function () {
@@ -136,7 +141,7 @@
        },flagsToPermissionStringMap:{0:"r",1:"r+",2:"r+",64:"r",65:"r+",66:"r+",129:"rx+",193:"rx+",514:"w+",577:"w",578:"w+",705:"wx",706:"wx+",1024:"a",1025:"a",1026:"a+",1089:"a",1090:"a+",1153:"ax",1154:"ax+",1217:"ax",1218:"ax+",4096:"rs",4098:"rs+"},flagsToPermissionString:function (flags) {
          if (flags in NODEFS.flagsToPermissionStringMap) {
            return NODEFS.flagsToPermissionStringMap[flags];
-@@ -2200,189 +2107,20 @@
+@@ -2199,189 +2107,20 @@
            return flags;
          }
        },node_ops:{getattr:function (node) {
@@ -326,7 +331,7 @@
          }}};
    
    var _stdin=allocate(1, "i32*", ALLOC_STATIC);
-@@ -4068,7 +3806,7 @@
+@@ -4067,7 +3806,7 @@
                // the node ws library API is slightly different than the browser's
                var opts = ENVIRONMENT_IS_NODE ? {headers: {'websocket-protocol': ['binary']}} : ['binary'];
                // If node we use the ws library.
@@ -335,7 +340,7 @@
                ws = new WebSocket(url, opts);
                ws.binaryType = 'arraybuffer';
              } catch (e) {
-@@ -4146,16 +3884,6 @@
+@@ -4145,16 +3884,6 @@
            };
    
            if (ENVIRONMENT_IS_NODE) {
@@ -352,7 +357,7 @@
            } else {
              peer.socket.onopen = handleOpen;
              peer.socket.onmessage = function peer_socket_onmessage(event) {
-@@ -4281,41 +4009,6 @@
+@@ -4280,41 +4009,6 @@
            if (!ENVIRONMENT_IS_NODE) {
              throw new FS.ErrnoError(ERRNO_CODES.EOPNOTSUPP);
            }
@@ -394,7 +399,7 @@
          },accept:function (listensock) {
            if (!listensock.server) {
              throw new FS.ErrnoError(ERRNO_CODES.EINVAL);
-@@ -7123,7 +6816,6 @@
+@@ -7122,7 +6816,6 @@
  FS.staticInit();__ATINIT__.unshift({ func: function() { if (!Module["noFSInit"] && !FS.init.initialized) FS.init() } });__ATMAIN__.push({ func: function() { FS.ignorePermissions = false } });__ATEXIT__.push({ func: function() { FS.quit() } });Module["FS_createFolder"] = FS.createFolder;Module["FS_createPath"] = FS.createPath;Module["FS_createDataFile"] = FS.createDataFile;Module["FS_createPreloadedFile"] = FS.createPreloadedFile;Module["FS_createLazyFile"] = FS.createLazyFile;Module["FS_createLink"] = FS.createLink;Module["FS_createDevice"] = FS.createDevice;
  ___errno_state = Runtime.staticAlloc(4); HEAP32[((___errno_state)>>2)]=0;
  __ATINIT__.unshift({ func: function() { TTY.init() } });__ATEXIT__.push({ func: function() { TTY.shutdown() } });TTY.utf8 = new Runtime.UTF8Processor();
@@ -402,7 +407,7 @@
  __ATINIT__.push({ func: function() { SOCKFS.root = FS.mount(SOCKFS, {}, null); } });
  _fputc.ret = allocate([0], "i8", ALLOC_STATIC);
  Module["requestFullScreen"] = function Module_requestFullScreen(lockPointer, resizeCanvas) { Browser.requestFullScreen(lockPointer, resizeCanvas) };
-@@ -8864,8 +8556,6 @@
+@@ -8863,8 +8556,6 @@
  
  if (memoryInitializer) {
    if (ENVIRONMENT_IS_NODE || ENVIRONMENT_IS_SHELL) {
@@ -411,3 +416,8 @@
    } else {
      addRunDependency('memory initializer');
      Browser.asyncLoad(memoryInitializer, function(data) {
+@@ -9066,3 +8757,4 @@
+ 
+ 
+ 
++return Module;}());
