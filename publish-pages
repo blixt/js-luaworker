@@ -19,22 +19,16 @@ ROOT=$(git rev-parse --show-toplevel)
 cd "$ROOT/$PAGES_DIR"
 
 # Build the pages
-mkdir -p build
-cp -v index.html build
-npm install -s luaworker
-browserify node_modules/luaworker/worker.js -o build/worker.js
-echo "generated build/worker.js"
-browserify index.js -o build/index.browser.js
-echo "generated build/index.browser.js"
+./build
 
 # Create a commit on top of current history
 git checkout -q --detach
-git add -f build/*
+git add -f out/*
 git commit -m "Update pages"
 
 # Create a new commit which contains the generated pages in root
 cd "$ROOT"
-NEW_COMMIT=$(git subtree -q split -P $PAGES_DIR/build HEAD)
+NEW_COMMIT=$(git subtree -q split -P $PAGES_DIR/out HEAD)
 git push -f $REMOTE_NAME $NEW_COMMIT:$PAGES_BRANCH
 
 # Restore state

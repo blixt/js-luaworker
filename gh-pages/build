@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+
+BUILD_DIR=out
+
+# Put everything into the build directory
+mkdir -p $BUILD_DIR
+
+# Just copy the HTML
+cp -v index.html $BUILD_DIR
+
+# Install the luaworker package
+npm install -s luaworker
+
+# Browserify the Web Worker code
+browserify node_modules/luaworker/worker.js -o $BUILD_DIR/worker.js
+echo "generated $BUILD_DIR/worker.js"
+
+# ...and the code for the main page
+browserify index.js -o $BUILD_DIR/index.browser.js
+echo "generated $BUILD_DIR/index.browser.js"
