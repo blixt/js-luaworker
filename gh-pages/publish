@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 
+PAGES_BRANCH="gh-pages"
+PAGES_DIR="gh-pages"
+REMOTE_NAME=origin
+
 # Require a clean working directory
 if [ -n "$(git status --porcelain)" ]; then
 	echo "working directory is not clean"
 	exit 1
 fi
-
-PAGES_BRANCH="gh-pages"
-PAGES_DIR="gh-pages"
-REMOTE_NAME=origin
 
 ORIG_DIR=$(pwd)
 ORIG_HEAD=$(git rev-parse --abbrev-ref HEAD)
