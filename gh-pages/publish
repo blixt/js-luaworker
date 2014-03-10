@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+# Require a clean working directory
+if [ -n "$(git status --porcelain)" ]; then
+	echo "working directory is not clean"
+	exit 1
+fi
+
+PAGES_BRANCH="gh-pages"
+PAGES_DIR="gh-pages"
+REMOTE_NAME=origin
+
+ORIG_DIR=$(pwd)
+ORIG_HEAD=$(git rev-parse --abbrev-ref HEAD)
+REMOTE=$(git config --get remote.$REMOTE_NAME.url)
+ROOT=$(git rev-parse --show-toplevel)
+
+# Go into pages directory
+cd "$ROOT/$PAGES_DIR"
+
+# Build the pages
+mkdir -p build
+cp -v index.html build
+npm install -s luaworker
+browserify node_modules/luaworker/worker.js -o build/worker.js
+echo "generated build/worker.js"
+browserify index.js -o build/index.browser.js
+echo "generated build/index.browser.js"
+
+# Create a commit on top of current history
+git checkout -q --detach
+git add -f build/*
+git commit -m "Update pages"
+
+# Create a new commit which contains the generated pages in root
+cd "$ROOT"
+NEW_COMMIT=$(git subtree -q split -P $PAGES_DIR/build HEAD)
+git push -f $REMOTE_NAME $NEW_COMMIT:$PAGES_BRANCH
+
+# Restore state
+git checkout -q $ORIG_HEAD
+cd "$ORIG_DIR"

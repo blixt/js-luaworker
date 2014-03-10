@@ -1,8 +1,9 @@
+/gh-pages/build
+/gh-pages/node_modules
 /lib/emlua.js
 /lua/src/emlua_shell.js
 /lua/src/liblua.a
 /lua/src/lua
 /lua/src/luac
-/node_modules
 /npm-debug.log
 *.o

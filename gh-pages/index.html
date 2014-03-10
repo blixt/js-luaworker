@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<title>Lua REPL</title>
+		<style>
+			pre, textarea {
+				font: 14px/1.4 monospace;
+			}
+
+			.code, .result {
+				border-left-style: solid;
+				border-left-width: 3px;
+				margin: 5px 0;
+				padding-left: 5px;
+			}
+
+			.code {
+				border-left-color: #888;
+			}
+
+			.result {
+				border-left-color: #090;
+				color: #090;
+			}
+		</style>
+	</head>
+	<body>
+		<pre id="output"></pre>
+		<textarea autofocus cols="80" rows="8" id="input">function sayhello(from)
+  print("Hello from " .. from .. "!")
+end
+
+sayhello("Lua")</textarea><br>
+		<button id="run">Run code</button>
+		<script src="index.browser.js"></script>
+	</body>
+</html>
