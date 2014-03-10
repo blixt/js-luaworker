@@ -13,7 +13,9 @@ calling the `luaworker` module function:
 ```js
 var lua = require('luaworker')('worker.js');
 lua.execute('name = "Lua"');
-lua.execute('print("Hello from " .. name .. "!")');
+lua.execute('print("Hello from " .. name .. "!")', function (err, buffer) {
+  console.log(buffer);
+});
 ```
 
 To be able to run this in a browser, you need to use a framework that
