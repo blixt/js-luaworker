@@ -1,6 +1,6 @@
 {
   "name": "luaworker",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "Package for running a Lua VM in a Web Worker.",
   "main": "index.js",
   "browser": {
